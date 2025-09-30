@@ -1,0 +1,62 @@
+<div class="container-fluid" 
+    data-success-message="<?= isset($success_message) ? $success_message : '' ?>"
+    data-autocomplete-data='<?= json_encode($rme_autocomplete_data) ?>'>
+
+    <h1 class="h3 mb-4 text-primary font-weight-bold">Residuos RME</h1>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    <form action="<?= base_url('empleado/guardar_rme'); ?>" method="POST">
+                        <div class="form-group">
+                            <label for="trabajador">Número de Empleado</label>
+                            <input type="text" class="form-control" id="trabajador" name="trabajador" value="<?= $empleado_numero ?>" readonly style="background-color: #f8f9fa;">
+                        </div>
+                        <div class="form-group">
+                            <label for="residuo">Nombre del Residuo</label>
+                            <select id="residuo" name="residuo" class="form-control selectpicker" data-live-search="true" data-size="8" title="Elegir..." required>
+                                <?php foreach ($residuos as $r): ?>
+                                    <option value="<?= $r['nombre']; ?>" data-clave="<?= $r['clave']; ?>" data-unidad="<?= $r['unidad']; ?>" data-almacen="<?= $r['almacen']; ?>"><?= $r['nombre']; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="clave">Clave</label>
+                            <input type="text" class="form-control" id="clave" name="clave" required readonly>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="cantidad">Cantidad</label>
+                                <input type="number" step="0.01" min="0" class="form-control" id="cantidad" name="cantidad" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="unidad">Unidad</label>
+                                <input type="text" class="form-control" id="unidad" name="unidad" readonly>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="almacen">Área de Almacenamiento</label>
+                            <input type="text" class="form-control" id="almacen" name="almacen" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="area_generacion">Área de Generación</label>
+                            <select id="area_generacion" name="area_generacion" class="form-control selectpicker" data-live-search="true" data-size="8" title="Elegir..." required>
+                                <?php foreach ($areas_generacion as $area): ?>
+                                    <option value="<?= $area; ?>"><?= $area; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ingreso">Fecha de Ingreso</label>
+                            <input type="date" class="form-control" id="ingreso" name="ingreso" readonly>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar Registro</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+ 
