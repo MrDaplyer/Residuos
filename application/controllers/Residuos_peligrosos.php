@@ -289,11 +289,8 @@ class Residuos_peligrosos extends CI_Controller {
         $objPHPExcel = PHPExcel_IOFactory::load($templatePath);
         $sheet = $objPHPExcel->getActiveSheet();
         
-        // Obtener el estilo completo de la primera fila con datos
-        $templateStyle = $sheet->getStyle('A5:J5');
-        
-        // Obtener los bordes de toda la tabla de la plantilla
-        $templateBorders = $sheet->getStyle('A5:J21')->getBorders();
+        // Obtener estilos base de la plantilla
+        $baseStyle = $sheet->getStyle('A5:J5');
 
         $rowIndex = 5;
         foreach ($registros as $registro) {
@@ -302,7 +299,7 @@ class Residuos_peligrosos extends CI_Controller {
             
             $sheet->setCellValue('A' . $rowIndex, $registro['trabajador']);
             $sheet->setCellValue('B' . $rowIndex, $registro['residuo']);
-            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad'] . ' ' . $registro['unidad']);
+            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad']);
             $sheet->setCellValue('D' . $rowIndex, $registro['crp']);
             $sheet->setCellValue('E' . $rowIndex, $registro['area_generacion']);
             $sheet->setCellValue('F' . $rowIndex, $ingreso_date);
@@ -310,42 +307,34 @@ class Residuos_peligrosos extends CI_Controller {
             $sheet->setCellValue('H' . $rowIndex, $registro['fase_siguiente']);
             $sheet->setCellValue('I' . $rowIndex, $registro['destino_razon_social']);
             $sheet->setCellValue('J' . $rowIndex, $registro['manifiesto']);
-
-            // Copiar el estilo de la plantilla y aplicar los bordes
+            
+            // Aplicar estilos consistentes
             $newRange = 'A' . $rowIndex . ':J' . $rowIndex;
-            $sheet->duplicateStyle($templateStyle, $newRange);
-
-            // Asegurar que los bordes estén presentes
+            
+            // Aplicar estilos con bordes, alineación y fuente adecuada
             $sheet->getStyle($newRange)->applyFromArray([
                 'borders' => [
                     'allborders' => [
                         'style' => PHPExcel_Style_Border::BORDER_THIN,
-                        'color' => ['rgb' => '000000']
-                    ],
-                    'outline' => [
-                        'style' => PHPExcel_Style_Border::BORDER_MEDIUM,
-                        'color' => ['rgb' => '000000']
+                        'color' => ['rgb' => '808080']
                     ]
-                ]
-            ]);
-
-            $rowIndex++;
-        }
-
-        // Aplicar bordes externos a toda la tabla
-        $fullRange = 'A5:J' . ($rowIndex - 1);
-        $sheet->getStyle($fullRange)->applyFromArray([
-            'borders' => [
-                'outline' => [
-                    'style' => PHPExcel_Style_Border::BORDER_THIN,
+                ],
+                'alignment' => [
+                    'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+                    'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
+                    'wrap' => true
+                ],
+                'font' => [
+                    'bold' => false,
+                    'size' => 10,
                     'color' => ['rgb' => '000000']
                 ]
-            ]
-        ]);
-
-        // Asegurar que todas las filas tengan altura adecuada
-        for ($i = 5; $i < $rowIndex; $i++) {
-            $sheet->getRowDimension($i)->setRowHeight(30);
+            ]);
+            
+            // Ajustar altura de la fila
+            $sheet->getRowDimension($rowIndex)->setRowHeight(30);
+            
+            $rowIndex++;
         }
 
         $extension = pathinfo($templatePath, PATHINFO_EXTENSION);
@@ -362,6 +351,11 @@ class Residuos_peligrosos extends CI_Controller {
         header('Content-Type: ' . $contentType);
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
+        header('Cache-Control: max-age=1');
+        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+        header('Cache-Control: cache, must-revalidate');
+        header('Pragma: public');
         
         $objWriter->save('php://output');
         exit();
@@ -431,7 +425,7 @@ class Residuos_peligrosos extends CI_Controller {
 
             $sheet->setCellValue('A' . $rowIndex, $registro['trabajador']);
             $sheet->setCellValue('B' . $rowIndex, $registro['residuo']);
-            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad'] . ' ' . $registro['unidad']);
+            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad']);
             $sheet->setCellValue('D' . $rowIndex, $registro['crp']);
             $sheet->setCellValue('E' . $rowIndex, $registro['area_generacion']);
             $sheet->setCellValue('F' . $rowIndex, $ingreso_date);

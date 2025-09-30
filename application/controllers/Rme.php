@@ -308,14 +308,8 @@ class Rme extends CI_Controller {
         $objPHPExcel = PHPExcel_IOFactory::load($templatePath);
         $sheet = $objPHPExcel->getActiveSheet();
         
-        // Guardar los estilos de todas las celdas de la plantilla (filas 5-21)
-        $templateStyles = array();
-        for ($i = 5; $i <= 21; $i++) {
-            $templateStyles[$i] = $sheet->getStyle('A'.$i.':K'.$i)->exportArray();
-        }
-        
-        // Guardar el estilo de los bordes de la tabla completa
-        $tableBorders = $sheet->getStyle('A5:K21')->getBorders()->exportArray();
+        // Obtener estilos base de la plantilla
+        $baseStyle = $sheet->getStyle('A5:K5');
 
         // los datos para el excel en RME - nuevo formato
         $rowIndex = 5; // Empezar desde la fila 5
@@ -331,7 +325,7 @@ class Rme extends CI_Controller {
             // Nuevo formato según especificaciones A5 hasta K5 - CORREGIDO: Cantidad en C, Clave en D
             $sheet->setCellValue('A' . $rowIndex, $registro['trabajador']); // Trabajador
             $sheet->setCellValue('B' . $rowIndex, $registro['residuo']); // Nombre de residuo
-            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad'] . ' ' . $registro['unidad']); // Cantidad generada concatenado
+            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad']); // Cantidad generada sin unidad
             $sheet->setCellValue('D' . $rowIndex, $registro['clave']); // Clave
             $sheet->setCellValue('E' . $rowIndex, $registro['almacen']); // Almacén
             $sheet->setCellValue('F' . $rowIndex, $registro['area_generacion']); // Área de generación
@@ -341,14 +335,11 @@ class Rme extends CI_Controller {
             $sheet->setCellValue('J' . $rowIndex, $registro['destino_razon_social']); // Razón social
             $sheet->setCellValue('K' . $rowIndex, $registro['manifiesto']); // Num. Manifiesto
             
-            // Verificar y deshacer cualquier merge existente en la fila actual
-            $currentRange = 'A' . $rowIndex . ':K' . $rowIndex;
-            if ($sheet->mergeCells($currentRange)) {
-                $sheet->unmergeCells($currentRange);
-            }
+            // Aplicar estilos consistentes
+            $newRange = 'A' . $rowIndex . ':K' . $rowIndex;
             
-            // Aplicar estilos
-            $sheet->getStyle($currentRange)->applyFromArray([
+            // Aplicar estilos con bordes, alineación y fuente adecuada
+            $sheet->getStyle($newRange)->applyFromArray([
                 'borders' => [
                     'allborders' => [
                         'style' => PHPExcel_Style_Border::BORDER_THIN,
@@ -366,6 +357,9 @@ class Rme extends CI_Controller {
                     'color' => ['rgb' => '000000']
                 ]
             ]);
+            
+            // Ajustar altura de la fila
+            $sheet->getRowDimension($rowIndex)->setRowHeight(30);
             
             $rowIndex++;
         }
