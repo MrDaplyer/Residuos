@@ -261,17 +261,13 @@ class Residuos_peligrosos extends CI_Controller {
         if (!$this->session->userdata('logged_in') || $this->session->userdata('role') !== 'admin') {
             redirect('login');
         }
-        error_log("DEBUG: exportar_excel function called.");
-        // Recoger filtros de la petición GET
+
         $filtros = [
             'residuos'     => $this->input->get('residuos'),
             'fecha_inicio' => $this->input->get('fecha_inicio'),
-            'fecha_fin'    => $this->input->get('fecha_fin'),
-            'start'        => $this->input->get('start'),
-            'length'       => $this->input->get('length')
+            'fecha_fin'    => $this->input->get('fecha_fin')
         ];
 
-        // Limpiar filtros vacíos y decodificar si es necesario
         if (!empty($filtros['residuos']) && is_string($filtros['residuos'])) {
             $filtros['residuos'] = json_decode($filtros['residuos']);
         }
@@ -279,93 +275,93 @@ class Residuos_peligrosos extends CI_Controller {
         
         $registros = $this->Residuos_peligrosos_model->get_registros_terminados($filtros);
 
-        // Recortar los registros para que solo incluyan los de la página actual
-        $start = isset($filtros['start']) ? (int)$filtros['start'] : 0;
-        $length = isset($filtros['length']) ? (int)$filtros['length'] : 8;
-        $registros = array_slice($registros, $start, $length);
-
-        // Verificar si PHPExcel está disponible
         if (!class_exists('PHPExcel_IOFactory')) {
             show_error('PHPExcel no está instalado. Por favor, instala las dependencias con Composer.', 500);
             return;
         }
 
-        // Buscar la plantilla de forma más robusta
         $templatePath = $this->find_excel_template('FO-EHS-016 BITÁCORA DE GENERACIÓN RESIDUOS PELIGROSOS.xlsx');
-        
         if (!$templatePath) {
-            show_error('No se pudo encontrar la plantilla de Residuos Peligrosos. Verifica que el archivo existe en la carpeta ExcelTemplate.', 500);
+            show_error('No se pudo encontrar la plantilla de Residuos Peligrosos.', 500);
             return;
         }
-        
-        // Cargar el archivo con PHPExcel
+
         $objPHPExcel = PHPExcel_IOFactory::load($templatePath);
         $sheet = $objPHPExcel->getActiveSheet();
         
-        // Estilo para los datos (PHPExcel syntax)
-        $dataStyle = array(
-            'font' => array(
-                'color' => array('rgb' => '000000'),
-                'size' => 10,
-                'bold' => false
-            ),
-            'alignment' => array(
-                'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
-                'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
-                'wrap' => true
-            )
-        );
+        // Obtener el estilo completo de la primera fila con datos
+        $templateStyle = $sheet->getStyle('A5:J5');
+        
+        // Obtener los bordes de toda la tabla de la plantilla
+        $templateBorders = $sheet->getStyle('A5:J21')->getBorders();
 
-        // los datos para el excel en residuos peligrosos - nuevo formato
-        $rowIndex = 5; // Empezar desde la fila 5
+        $rowIndex = 5;
         foreach ($registros as $registro) {
             $ingreso_date = !empty($registro['ingreso']) ? date('d/m/Y', strtotime($registro['ingreso'])) : '';
             $salida_date = !empty($registro['salida']) ? date('d/m/Y', strtotime($registro['salida'])) : '';
             
-            // Nuevo formato según especificaciones - CORREGIDO: Cantidad en C, CRP en D
-            $sheet->setCellValue('A' . $rowIndex, $registro['trabajador']); // Trabajador
-            $sheet->setCellValue('B' . $rowIndex, $registro['residuo']); // Nombre de residuo
-            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad'] . ' ' . $registro['unidad']); // Cantidad y unidad concatenado
-            $sheet->setCellValue('D' . $rowIndex, $registro['crp']); // CRP
-            $sheet->setCellValue('E' . $rowIndex, $registro['area_generacion']); // Proceso de generación
-            $sheet->setCellValue('F' . $rowIndex, $ingreso_date); // Fecha ingreso
-            $sheet->setCellValue('G' . $rowIndex, $salida_date); // Fecha salida
-            $sheet->setCellValue('H' . $rowIndex, $registro['fase_siguiente']); // Fase manejo
-            $sheet->setCellValue('I' . $rowIndex, $registro['destino_razon_social']); // Razón social
-            $sheet->setCellValue('J' . $rowIndex, $registro['manifiesto']); // Num. Manifiesto
-            
-            $sheet->getStyle('A' . $rowIndex . ':J' . $rowIndex)->applyFromArray($dataStyle);
+            $sheet->setCellValue('A' . $rowIndex, $registro['trabajador']);
+            $sheet->setCellValue('B' . $rowIndex, $registro['residuo']);
+            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad'] . ' ' . $registro['unidad']);
+            $sheet->setCellValue('D' . $rowIndex, $registro['crp']);
+            $sheet->setCellValue('E' . $rowIndex, $registro['area_generacion']);
+            $sheet->setCellValue('F' . $rowIndex, $ingreso_date);
+            $sheet->setCellValue('G' . $rowIndex, $salida_date);
+            $sheet->setCellValue('H' . $rowIndex, $registro['fase_siguiente']);
+            $sheet->setCellValue('I' . $rowIndex, $registro['destino_razon_social']);
+            $sheet->setCellValue('J' . $rowIndex, $registro['manifiesto']);
+
+            // Copiar el estilo de la plantilla y aplicar los bordes
+            $newRange = 'A' . $rowIndex . ':J' . $rowIndex;
+            $sheet->duplicateStyle($templateStyle, $newRange);
+
+            // Asegurar que los bordes estén presentes
+            $sheet->getStyle($newRange)->applyFromArray([
+                'borders' => [
+                    'allborders' => [
+                        'style' => PHPExcel_Style_Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ],
+                    'outline' => [
+                        'style' => PHPExcel_Style_Border::BORDER_MEDIUM,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
+            ]);
 
             $rowIndex++;
         }
 
-        // Crear el writer apropiado según la extensión del archivo original
-        $pathInfo = pathinfo($templatePath);
-        $extension = strtolower($pathInfo['extension']);
-        
-        if ($extension === 'xls') {
-            $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
-            $filename = 'Bitacora_Residuos_Peligrosos.xls';
-            $contentType = 'application/vnd.ms-excel';
-        } else {
-            $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
-            $filename = 'Bitacora_Residuos_Peligrosos.xlsx';
-            $contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        // Aplicar bordes externos a toda la tabla
+        $fullRange = 'A5:J' . ($rowIndex - 1);
+        $sheet->getStyle($fullRange)->applyFromArray([
+            'borders' => [
+                'outline' => [
+                    'style' => PHPExcel_Style_Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000']
+                ]
+            ]
+        ]);
+
+        // Asegurar que todas las filas tengan altura adecuada
+        for ($i = 5; $i < $rowIndex; $i++) {
+            $sheet->getRowDimension($i)->setRowHeight(30);
         }
 
-        // Limpiar cualquier salida previa
-        if (ob_get_level()) {
-            ob_end_clean();
-        }
+        $extension = pathinfo($templatePath, PATHINFO_EXTENSION);
+        $filename = 'Bitacora_Residuos_Peligrosos.' . $extension;
+        $contentType = ($extension === 'xls') 
+            ? 'application/vnd.ms-excel'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        
+        $writerType = ($extension === 'xls') ? 'Excel5' : 'Excel2007';
+        $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, $writerType);
+
+        if (ob_get_level()) ob_end_clean();
 
         header('Content-Type: ' . $contentType);
-        header('Content-Disposition: attachment; filename="'. $filename .'"');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
-        header('Cache-Control: max-age=1');
-        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-        header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
-        header('Cache-Control: cache, must-revalidate');
-        header('Pragma: public');
         
         $objWriter->save('php://output');
         exit();
@@ -445,7 +441,45 @@ class Residuos_peligrosos extends CI_Controller {
             $sheet->setCellValue('I' . $rowIndex, ''); // Razón social (destino)
             $sheet->setCellValue('J' . $rowIndex, ''); // Número de manifiesto
 
-            $sheet->getStyle('A' . $rowIndex . ':J' . $rowIndex)->applyFromArray($dataStyle);
+            // Copiar el estilo base de la plantilla
+            $baseStyle = $sheet->getStyle('A5:J5');
+            $sheet->duplicateStyle($baseStyle, 'A' . $rowIndex . ':J' . $rowIndex);
+
+            // Ajustar altura de la fila
+            $sheet->getRowDimension($rowIndex)->setRowHeight(30);
+
+            // Aplicar bordes y alineación suaves
+            $sheet->getStyle('A' . $rowIndex . ':J' . $rowIndex)->applyFromArray([
+                'borders' => [
+                    'allborders' => [
+                        'style' => PHPExcel_Style_Border::BORDER_THIN,
+                        'color' => ['rgb' => '808080']
+                    ]
+                ],
+                'alignment' => [
+                    'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+                    'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
+                    'wrap' => true
+                ],
+                'font' => [
+                    'bold' => false,
+                    'size' => 10
+                ]
+            ]);
+
+            // Ajustar anchos de columna si es necesario
+            if ($rowIndex === 5) {
+                $sheet->getColumnDimension('A')->setWidth(20); // Trabajador
+                $sheet->getColumnDimension('B')->setWidth(25); // Residuo
+                $sheet->getColumnDimension('C')->setWidth(15); // Cantidad
+                $sheet->getColumnDimension('D')->setWidth(15); // CRP
+                $sheet->getColumnDimension('E')->setWidth(20); // Area
+                $sheet->getColumnDimension('F')->setWidth(12); // Ingreso
+                $sheet->getColumnDimension('G')->setWidth(12); // Salida
+                $sheet->getColumnDimension('H')->setWidth(20); // Fase
+                $sheet->getColumnDimension('I')->setWidth(25); // Destino
+                $sheet->getColumnDimension('J')->setWidth(15); // Manifiesto
+            }
             $rowIndex++;
         }
 

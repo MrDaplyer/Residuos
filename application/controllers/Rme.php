@@ -308,22 +308,22 @@ class Rme extends CI_Controller {
         $objPHPExcel = PHPExcel_IOFactory::load($templatePath);
         $sheet = $objPHPExcel->getActiveSheet();
         
-        // Estilo para los datos (PHPExcel syntax)
-        $dataStyle = array(
-            'font' => array(
-                'color' => array('rgb' => '000000'),
-                'size' => 10,
-                'bold' => false
-            ),
-            'alignment' => array(
-                'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
-                'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
-                'wrap' => true
-            )
-        );
+        // Guardar los estilos de todas las celdas de la plantilla (filas 5-21)
+        $templateStyles = array();
+        for ($i = 5; $i <= 21; $i++) {
+            $templateStyles[$i] = $sheet->getStyle('A'.$i.':K'.$i)->exportArray();
+        }
+        
+        // Guardar el estilo de los bordes de la tabla completa
+        $tableBorders = $sheet->getStyle('A5:K21')->getBorders()->exportArray();
 
         // los datos para el excel en RME - nuevo formato
         $rowIndex = 5; // Empezar desde la fila 5
+        
+        // Guardar el contenido de A22 y A23 antes de sobrescribir
+        $contenidoA22 = $sheet->getCell('A22')->getValue();
+        $contenidoA23 = $sheet->getCell('A23')->getValue();
+        
         foreach ($registros as $registro) {
             $ingreso_date = !empty($registro['ingreso']) ? date('d/m/Y', strtotime($registro['ingreso'])) : '';
             $salida_date = !empty($registro['salida']) ? date('d/m/Y', strtotime($registro['salida'])) : '';
@@ -341,10 +341,68 @@ class Rme extends CI_Controller {
             $sheet->setCellValue('J' . $rowIndex, $registro['destino_razon_social']); // Razón social
             $sheet->setCellValue('K' . $rowIndex, $registro['manifiesto']); // Num. Manifiesto
             
-            $sheet->getStyle('A' . $rowIndex . ':K' . $rowIndex)->applyFromArray($dataStyle);
-
+            // Verificar y deshacer cualquier merge existente en la fila actual
+            $currentRange = 'A' . $rowIndex . ':K' . $rowIndex;
+            if ($sheet->mergeCells($currentRange)) {
+                $sheet->unmergeCells($currentRange);
+            }
+            
+            // Aplicar estilos
+            $sheet->getStyle($currentRange)->applyFromArray([
+                'borders' => [
+                    'allborders' => [
+                        'style' => PHPExcel_Style_Border::BORDER_THIN,
+                        'color' => ['rgb' => '808080']
+                    ]
+                ],
+                'alignment' => [
+                    'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+                    'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
+                    'wrap' => true
+                ],
+                'font' => [
+                    'bold' => false,
+                    'size' => 10,
+                    'color' => ['rgb' => '000000']
+                ]
+            ]);
+            
             $rowIndex++;
         }
+
+        // Añadir las filas especiales al final de los datos
+        // Primera fila especial: "Tara bote azul"
+        $sheet->mergeCells('A' . $rowIndex . ':B' . $rowIndex);
+        $sheet->setCellValue('A' . $rowIndex, 'Tara bote azul');
+        $sheet->getStyle('A' . $rowIndex . ':B' . $rowIndex)->applyFromArray([
+            'alignment' => [
+                'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+                'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER
+            ],
+            'font' => [
+                'size' => 10,
+                'bold' => false,
+                'color' => ['rgb' => '000000']
+            ]
+        ]);
+        $sheet->getRowDimension($rowIndex)->setRowHeight(30);
+        
+        // Segunda fila especial: "4.3"
+        $rowIndex++;
+        $sheet->mergeCells('A' . $rowIndex . ':B' . $rowIndex);
+        $sheet->setCellValue('A' . $rowIndex, '4.3');
+        $sheet->getStyle('A' . $rowIndex . ':B' . $rowIndex)->applyFromArray([
+            'alignment' => [
+                'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+                'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER
+            ],
+            'font' => [
+                'size' => 10,
+                'bold' => false,
+                'color' => ['rgb' => '000000']
+            ]
+        ]);
+        $sheet->getRowDimension($rowIndex)->setRowHeight(30);
 
         $pathInfo = pathinfo($templatePath);
         $extension = strtolower($pathInfo['extension']);
@@ -438,6 +496,11 @@ class Rme extends CI_Controller {
 
         // Llenar datos: columnas A..K, con 4 adicionales en blanco (H..K cuando aplique)
         $rowIndex = 5; // Empezar desde la fila 5
+        
+        // Guardar el contenido de A22 y A23 antes de sobrescribir
+        $contenidoA22 = $sheet->getCell('A22')->getValue();
+        $contenidoA23 = $sheet->getCell('A23')->getValue();
+        
         foreach ($registros as $registro) {
             $ingreso_date = !empty($registro['ingreso']) ? date('d/m/Y', strtotime($registro['ingreso'])) : '';
 
@@ -454,9 +517,187 @@ class Rme extends CI_Controller {
             $sheet->setCellValue('J' . $rowIndex, ''); // Razón social (destino)
             $sheet->setCellValue('K' . $rowIndex, ''); // Número de manifiesto
 
-            $sheet->getStyle('A' . $rowIndex . ':K' . $rowIndex)->applyFromArray($dataStyle);
+            // Copiar el estilo base de la plantilla
+            $baseStyle = $sheet->getStyle('A5:K5');
+            $sheet->duplicateStyle($baseStyle, 'A' . $rowIndex . ':K' . $rowIndex);
+
+            // Ajustar altura de la fila
+            $sheet->getRowDimension($rowIndex)->setRowHeight(30);
+
+            // Aplicar bordes y alineación suaves
+            $sheet->getStyle('A' . $rowIndex . ':K' . $rowIndex)->applyFromArray([
+                'borders' => [
+                    'allborders' => [
+                        'style' => PHPExcel_Style_Border::BORDER_THIN,
+                        'color' => ['rgb' => '808080']
+                    ]
+                ],
+                'alignment' => [
+                    'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+                    'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
+                    'wrap' => true
+                ],
+                'font' => [
+                    'bold' => false,
+                    'size' => 10,
+                    'color' => ['rgb' => '000000']
+                ]
+            ]);
+
+            // Ajustar anchos de columna si es necesario
+            if ($rowIndex === 5) {
+                $sheet->getColumnDimension('A')->setWidth(20); // Trabajador
+                $sheet->getColumnDimension('B')->setWidth(25); // Residuo
+                $sheet->getColumnDimension('C')->setWidth(15); // Cantidade
+                $sheet->getColumnDimension('D')->setWidth(15); // Clave
+                $sheet->getColumnDimension('E')->setWidth(15); // Almacén
+                $sheet->getColumnDimension('F')->setWidth(20); // Área
+                $sheet->getColumnDimension('G')->setWidth(12); // Ingreso
+                $sheet->getColumnDimension('H')->setWidth(12); // Salida
+                $sheet->getColumnDimension('I')->setWidth(20); // Fase
+                $sheet->getColumnDimension('J')->setWidth(25); // Destino
+                $sheet->getColumnDimension('K')->setWidth(15); // Manifiesto
+            }
             $rowIndex++;
         }
+
+        // Aplicar bordes externos a toda la tabla de datos
+        $fullRange = 'A5:K' . ($rowIndex - 1);
+        $sheet->getStyle($fullRange)->applyFromArray([
+            'borders' => [
+                'outline' => [
+                    'style' => PHPExcel_Style_Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000']
+                ]
+            ]
+        ]);
+
+        // Asegurar que todas las filas tengan altura adecuada
+        for ($i = 5; $i < $rowIndex; $i++) {
+            $sheet->getRowDimension($i)->setRowHeight(30);
+        }
+
+        // Añadir las filas especiales al final de los datos
+        // Definir estilo común
+        $commonStyle = array(
+            'alignment' => array(
+                'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+                'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER
+            ),
+            'font' => array(
+                'size' => 10,
+                'bold' => false,
+                'color' => array('rgb' => '000000')
+            ),
+            'borders' => array(
+                'allborders' => array(
+                    'style' => PHPExcel_Style_Border::BORDER_THIN,
+                    'color' => array('rgb' => '000000')
+                )
+            )
+        );
+
+        // Agregar filas especiales con verificación
+        $specialRows = array(
+            array('text' => 'Tara bote azul', 'value_check' => false),
+            array('text' => '4.3', 'value_check' => false)
+        );
+
+        foreach ($specialRows as $index => $specialRow) {
+            $currentRow = $rowIndex + $index;
+            
+            // Limpiar la fila actual
+            foreach (range('A', 'K') as $col) {
+                $sheet->setCellValue($col . $currentRow, '');
+            }
+
+            // Intentar deshacer merge si existe
+            try {
+                $sheet->unmergeCells('A' . $currentRow . ':B' . $currentRow);
+            } catch (Exception $e) {
+                // Ignorar error si no había merge
+            }
+
+            // Establecer el valor y verificar
+            $sheet->setCellValue('A' . $currentRow, $specialRow['text']);
+            $sheet->mergeCells('A' . $currentRow . ':B' . $currentRow);
+
+            // Aplicar estilo
+            $sheet->getStyle('A' . $currentRow . ':B' . $currentRow)->applyFromArray(array(
+                'alignment' => array(
+                    'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+                    'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER
+                ),
+                'font' => array(
+                    'size' => 10,
+                    'bold' => false,
+                    'color' => array('rgb' => '000000')
+                ),
+                'borders' => array(
+                    'allborders' => array(
+                        'style' => PHPExcel_Style_Border::BORDER_THIN,
+                        'color' => array('rgb' => '000000')
+                    )
+                )
+            ));
+
+            // Establecer altura de fila
+            $sheet->getRowDimension($currentRow)->setRowHeight(30);
+
+            // Verificar que el valor se estableció correctamente
+            $actualValue = $sheet->getCell('A' . $currentRow)->getValue();
+            error_log('Fila ' . $currentRow . ' - Valor esperado: ' . $specialRow['text'] . ' - Valor actual: ' . $actualValue);
+
+            // Si el valor no se estableció, intentar nuevamente
+            if ($actualValue !== $specialRow['text']) {
+                $sheet->setCellValue('A' . $currentRow, $specialRow['text']);
+                error_log('Reintento de establecer valor en fila ' . $currentRow);
+            }
+        }
+
+        // Actualizar el índice de fila final
+        $rowIndex = $rowIndex + count($specialRows);
+
+        // Limpiar la siguiente fila para el contenido especial
+        foreach (range('A', 'K') as $col) {
+            $sheet->setCellValue($col . $rowIndex, '');
+        }
+        
+        // Copiar el contenido de A22 y extenderlo a través de todas las columnas
+        $sheet->setCellValue('A' . $rowIndex, $contenidoA22);
+        $mergeRange = 'A' . $rowIndex . ':K' . $rowIndex;
+        if (!$sheet->mergeCells($mergeRange)) {
+            $sheet->mergeCells($mergeRange);
+        }
+        $sheet->getStyle('A' . $rowIndex)->applyFromArray([
+            'font' => [
+                'size' => 10,
+                'bold' => false,
+                'color' => ['rgb' => '000000']
+            ],
+            'alignment' => [
+                'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_LEFT,
+                'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER
+            ]
+        ]);
+        $sheet->getRowDimension($rowIndex)->setRowHeight(30);
+        $rowIndex++;
+        
+        // Copiar el contenido de A23 y extenderlo a través de todas las columnas
+        $sheet->setCellValue('A' . $rowIndex, $contenidoA23);
+        $sheet->mergeCells('A' . $rowIndex . ':K' . $rowIndex);
+        $sheet->getStyle('A' . $rowIndex)->applyFromArray([
+            'font' => [
+                'size' => 10,
+                'bold' => false,
+                'color' => ['rgb' => '000000']
+            ],
+            'alignment' => [
+                'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_LEFT,
+                'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER
+            ]
+        ]);
+        $sheet->getRowDimension($rowIndex)->setRowHeight(30);
 
         $pathInfo = pathinfo($templatePath);
         $extension = strtolower($pathInfo['extension']);
