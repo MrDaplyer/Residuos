@@ -500,7 +500,7 @@ class Rme extends CI_Controller {
 
             $sheet->setCellValue('A' . $rowIndex, $registro['trabajador']);
             $sheet->setCellValue('B' . $rowIndex, $registro['residuo']);
-            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad'] . ' ' . $registro['unidad']);
+            $sheet->setCellValue('C' . $rowIndex, $registro['cantidad']);
             $sheet->setCellValue('D' . $rowIndex, $registro['clave']);
             $sheet->setCellValue('E' . $rowIndex, $registro['almacen']);
             $sheet->setCellValue('F' . $rowIndex, $registro['area_generacion']);
