@@ -275,6 +275,12 @@ class Rme extends CI_Controller {
             'length'       => $this->input->get('length')
         ];
 
+        // Obtener IDs seleccionados si existen
+        $ids_seleccionados = $this->input->get('ids');
+        if ($ids_seleccionados) {
+            $filtros['ids'] = json_decode($ids_seleccionados, true);
+        }
+
         if (!empty($filtros['residuos']) && is_string($filtros['residuos'])) {
             $filtros['residuos'] = json_decode($filtros['residuos']);
         }
@@ -282,16 +288,19 @@ class Rme extends CI_Controller {
         
         $registros = $this->Rme_model->get_registros_terminados($filtros);
 
-        $start = isset($filtros['start']) ? (int)$filtros['start'] : 0;
-        $length = isset($filtros['length']) ? (int)$filtros['length'] : 19;
-        $registros = array_slice($registros, $start, $length);
+        // Si se están exportando registros seleccionados, no aplicar paginación
+        if (!isset($filtros['ids'])) {
+            $start = isset($filtros['start']) ? (int)$filtros['start'] : 0;
+            $length = isset($filtros['length']) ? (int)$filtros['length'] : 19;
+            $registros = array_slice($registros, $start, $length);
+        }
 
         if (!class_exists('PHPExcel_IOFactory')) {
             show_error('PHPExcel no está instalado. Por favor, instala las dependencias con Composer.', 500);
             return;
         }
 
-        $templatePath = $this->find_excel_template('FO-EHS-018 BITÁCORA DE GENERACIÓN RME.xls');
+        $templatePath = $this->find_excel_template('FO-EHS-018 BITÁCORA DE GENERACIÓN RME.xlsx');
         
         if (!$templatePath) {
             show_error('No se pudo encontrar la plantilla de RME. Verifica que el archivo existe en la carpeta ExcelTemplate.', 500);
@@ -369,6 +378,12 @@ class Rme extends CI_Controller {
         $sheet->mergeCells('A' . $rowIndex . ':B' . $rowIndex);
         $sheet->setCellValue('A' . $rowIndex, 'Tara bote azul');
         $sheet->getStyle('A' . $rowIndex . ':B' . $rowIndex)->applyFromArray([
+            'borders' => [
+                'allborders' => [
+                    'style' => PHPExcel_Style_Border::BORDER_THIN,
+                    'color' => ['rgb' => '808080']
+                ]
+            ],
             'alignment' => [
                 'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
                 'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER
@@ -386,6 +401,12 @@ class Rme extends CI_Controller {
         $sheet->mergeCells('A' . $rowIndex . ':B' . $rowIndex);
         $sheet->setCellValue('A' . $rowIndex, '4.3');
         $sheet->getStyle('A' . $rowIndex . ':B' . $rowIndex)->applyFromArray([
+            'borders' => [
+                'allborders' => [
+                    'style' => PHPExcel_Style_Border::BORDER_THIN,
+                    'color' => ['rgb' => '808080']
+                ]
+            ],
             'alignment' => [
                 'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
                 'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER
@@ -457,7 +478,7 @@ class Rme extends CI_Controller {
             return;
         }
 
-        $templatePath = $this->find_excel_template('FO-EHS-018 BITÁCORA DE GENERACIÓN RME.xls');
+        $templatePath = $this->find_excel_template('FO-EHS-018 BITÁCORA DE GENERACIÓN RME.xlsx');
         
         if (!$templatePath) {
             show_error('No se pudo encontrar la plantilla de RME. Verifica que el archivo existe en la carpeta ExcelTemplate.', 500);

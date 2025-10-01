@@ -268,6 +268,12 @@ class Residuos_peligrosos extends CI_Controller {
             'fecha_fin'    => $this->input->get('fecha_fin')
         ];
 
+        // Obtener IDs seleccionados si existen
+        $ids_seleccionados = $this->input->get('ids');
+        if ($ids_seleccionados) {
+            $filtros['ids'] = json_decode($ids_seleccionados, true);
+        }
+
         if (!empty($filtros['residuos']) && is_string($filtros['residuos'])) {
             $filtros['residuos'] = json_decode($filtros['residuos']);
         }

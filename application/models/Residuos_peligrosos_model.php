@@ -124,17 +124,22 @@ class Residuos_peligrosos_model extends CI_Model {
     {
         $this->db->from('residuos_peligrosos_terminados');
 
-        // Filtro por tipo de residuo (array)
-        if (!empty($filtros['residuos'])) {
-            $this->db->where_in('residuo', $filtros['residuos']);
-        }
+        // Filtro por IDs seleccionados (tiene prioridad sobre otros filtros)
+        if (!empty($filtros['ids'])) {
+            $this->db->where_in('id', $filtros['ids']);
+        } else {
+            // Filtro por tipo de residuo (array)
+            if (!empty($filtros['residuos'])) {
+                $this->db->where_in('residuo', $filtros['residuos']);
+            }
 
-        // Filtro por rango de fecha de ingreso
-        if (!empty($filtros['fecha_inicio'])) {
-            $this->db->where('DATE(ingreso) >=', $filtros['fecha_inicio']);
-        }
-        if (!empty($filtros['fecha_fin'])) {
-            $this->db->where('DATE(ingreso) <=', $filtros['fecha_fin']);
+            // Filtro por rango de fecha de ingreso
+            if (!empty($filtros['fecha_inicio'])) {
+                $this->db->where('DATE(ingreso) >=', $filtros['fecha_inicio']);
+            }
+            if (!empty($filtros['fecha_fin'])) {
+                $this->db->where('DATE(ingreso) <=', $filtros['fecha_fin']);
+            }
         }
 
         $query = $this->db->get();

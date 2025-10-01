@@ -52,6 +52,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
+                            <th style="width:32px;" class="text-center">
+                                <input type="checkbox" id="selectAll-terminados">
+                            </th>
                             <th>ID</th>
                             <th style="width:32px;" class="text-center"></th>
                             <th>Trabajador</th>

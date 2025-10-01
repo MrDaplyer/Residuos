@@ -16,6 +16,15 @@ $(document).ready(function() {
                 "data": filters
             },
             "columns": [
+                { 
+                    "data": null,
+                    "orderable": false,
+                    "searchable": false,
+                    "className": "text-center align-middle",
+                    "render": function (data, type, row) {
+                        return '<input type="checkbox" class="row-select-peligrosos" data-id="' + row.id + '">';
+                    }
+                },
                 { "data": "id" },
                 {
                     "data": null,
@@ -49,8 +58,8 @@ $(document).ready(function() {
                 { "data": "manifiesto" }
             ],
             "columnDefs": [
-                { "targets": [0], "visible": false },
-                { "targets": [1], "width": 32 }
+                { "targets": [1], "visible": false }, // Ocultar columna de ID
+                { "targets": [2], "width": 32 } // Ancho para la columna de acciones
             ],
             "responsive": true,
             "pageLength": 17,
@@ -71,15 +80,26 @@ $(document).ready(function() {
                 "text": 'Excel',
                 "className": 'btn btn-primary btn-sm mr-2',
                 "action": function ( e, dt, node, config ) {
-                    var currentFilters = getFilters();
+                    var selectedIds = obtenerIDsSeleccionadosPeligrosos('dataTablePeligrososTerminados');
+                    var url = baseUrl + 'residuos_peligrosos/exportar_excel';
                     
-                    // Obtener la información de paginación actual de DataTables
-                    var pageInfo = dt.page.info();
-                    currentFilters.start = pageInfo.start;
-                    currentFilters.length = pageInfo.length;
+                    if (selectedIds.length > 0) {
+                        // Si hay seleccionados, enviar los IDs
+                        url += '?ids=' + encodeURIComponent(JSON.stringify(selectedIds));
+                    } else {
+                        // Si no hay seleccionados, usar los filtros actuales
+                        var currentFilters = getFilters();
+                        
+                        // Obtener la información de paginación actual de DataTables
+                        var pageInfo = dt.page.info();
+                        currentFilters.start = pageInfo.start;
+                        currentFilters.length = pageInfo.length;
 
-                    var queryString = $.param(currentFilters);
-                    window.location.href = baseUrl + 'residuos_peligrosos/exportar_excel?' + queryString;
+                        var queryString = $.param(currentFilters);
+                        url += '?' + queryString;
+                    }
+                    
+                    window.location.href = url;
                 }
             }]
         });
@@ -110,6 +130,13 @@ $(document).ready(function() {
         $('#filter-form-peligrosos')[0].reset();
         $('.selectpicker').selectpicker('refresh');
         initializeDataTable();
+    });
+
+    // Manejar checkbox principal
+    $(document).on('change', '#selectAll-peligrosos-terminados', function() {
+        var table = $('#dataTablePeligrososTerminados').DataTable();
+        var checkboxes = table.$('.row-select-peligrosos', {"page": "all"});
+        checkboxes.prop('checked', $(this).prop('checked'));
     });
 
     // Delegación para eliminar
@@ -154,3 +181,15 @@ $(document).ready(function() {
         }
     });
 });
+
+// Función para obtener IDs seleccionados
+function obtenerIDsSeleccionadosPeligrosos(tableId) {
+    var table = $('#' + tableId).DataTable();
+    var selectedIds = [];
+    
+    table.$('.row-select-peligrosos:checked', {"page": "all"}).each(function() {
+        selectedIds.push($(this).data('id'));
+    });
+    
+    return selectedIds;
+}
