@@ -62,8 +62,8 @@ $(document).ready(function() {
                 { "targets": [2], "width": 32 } // Ancho para la columna de acciones
             ],
             "responsive": true,
-            "pageLength": 17,
-            "lengthMenu": [17],
+            "pageLength": 25,
+            "lengthMenu": [[25, 50, 75, 100, -1], [25, 50, 75, 100, "Todo"]],
             "language": {
                 "processing": "Procesando...",
                 "lengthMenu": "Mostrar _MENU_ registros",

@@ -489,6 +489,7 @@ $(document).ready(function() {
                 exportarExcelPendientes();
             }
         }],
+        "lengthMenu": [[25, 50, 75, 100, -1], [25, 50, 75, 100, "Todo"]],
         "language": {
             "processing": "Procesando...",
             "lengthMenu": "Mostrar _MENU_ registros",
